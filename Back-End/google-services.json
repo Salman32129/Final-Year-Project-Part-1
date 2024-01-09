@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "686238013661",
+    "project_id": "tomato-db-a6bf2",
+    "storage_bucket": "tomato-db-a6bf2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686238013661:android:ef8e42581f9252cb0d2334",
+        "android_client_info": {
+          "package_name": "com.example.tomato_care"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDa2HL8kmXiGecCGNrCIbVMGDwED4s691k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
