@@ -85,16 +85,15 @@ class _SignupPageState extends State<SignupPage> {
                           textColor: Color.fromARGB(255, 43, 10, 10),
                           iconColor: Color.fromARGB(255, 216, 1, 1),
                           borderColor: Color.fromARGB(255, 216, 1, 1),
-                          validator: form_validator.MultiValidator([
-                            form_validator.RequiredValidator(
-                                errorText: "* Required"),
-                            form_validator.MinLengthValidator(3,
-                                errorText:
-                                    "Username should be at least 3 characters"),
-                            form_validator.MaxLengthValidator(15,
-                                errorText:
-                                    "Username should not be greater than 15 characters")
-                          ]),
+                          validator: (value) {
+                            if (value!.isEmpty) {
+                              return '*Username is required';
+                            }
+                            if (value.trim().isEmpty) {
+                              return 'Username cannot consist of only spaces';
+                            }
+                            return null;
+                          },
                         ),
                         SizedBox(height: 16),
                         buildTextField(
@@ -106,7 +105,7 @@ class _SignupPageState extends State<SignupPage> {
                           borderColor: Color.fromARGB(255, 216, 1, 1),
                           validator: (value) {
                             if (value!.trim().isEmpty) {
-                              return 'Email is required';
+                              return '*Email is required';
                             }
                             if (emailError != null) {
                               return emailError;
@@ -124,7 +123,7 @@ class _SignupPageState extends State<SignupPage> {
                           borderColor: Color.fromARGB(255, 216, 1, 1),
                           validator: (value) {
                             if (value!.trim().isEmpty) {
-                              return 'Phone is required';
+                              return '*Phone is required';
                             }
                             if (phoneError != null) {
                               return phoneError;
@@ -143,7 +142,7 @@ class _SignupPageState extends State<SignupPage> {
                           borderColor: Color.fromARGB(255, 216, 1, 1),
                           validator: form_validator.MultiValidator([
                             form_validator.RequiredValidator(
-                                errorText: "* Required"),
+                                errorText: "*Password Required"),
                             form_validator.MinLengthValidator(6,
                                 errorText:
                                     "Password should be at least 6 characters"),
@@ -272,39 +271,43 @@ class _SignupPageState extends State<SignupPage> {
       String password = passwordController.text.trim();
 
       try {
-        QuerySnapshot query = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: email)
-            .get();
+        // Reset emailError before querying
+        setState(() {
+          emailError = null;
+        });
 
-        if (query.docs.isNotEmpty) {
-          setState(() {
-            emailError = "User already exists with this email.";
-          });
-          return;
-        }
+        // Check if user already exists with provided email
+        await checkUserExists(email);
 
+        // If user already exists, return without signing up
+        if (emailError != null) return;
+
+        // Create user in Firebase Auth
         UserCredential userCredential = await FirebaseAuth.instance
             .createUserWithEmailAndPassword(email: email, password: password);
 
         String userId = userCredential.user!.uid;
 
+        // Store user data in Firestore
         await FirebaseFirestore.instance.collection('users').doc(userId).set({
           'username': username,
           'email': email,
           'phone': phone,
         });
 
+        // Set signup success state
         setState(() {
           isSignUpSuccessful = true;
         });
 
+        // Reset success state after 6 seconds
         Future.delayed(Duration(seconds: 6), () {
           setState(() {
             isSignUpSuccessful = false;
           });
         });
 
+        // Navigate to login screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -330,6 +333,31 @@ class _SignupPageState extends State<SignupPage> {
           },
         );
       }
+    }
+  }
+
+  Future<void> checkUserExists(String email) async {
+    try {
+      QuerySnapshot query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .get(GetOptions(
+              source: Source.server)); // Fetch latest data from server
+
+      if (query.docs.isNotEmpty) {
+        setState(() {
+          emailError = "User already exists with this email.";
+        });
+      } else {
+        setState(() {
+          emailError = null;
+        });
+      }
+    } catch (e) {
+      print('Error checking user: $e');
+      setState(() {
+        emailError = "Error checking user. Please try again.";
+      });
     }
   }
 }
